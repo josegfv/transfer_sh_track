@@ -22,8 +22,12 @@ import os
 import json
 import datetime
 import subprocess
-from docopt import docopt
 from copy import deepcopy
+try:
+    from docopt import docopt
+except ImportError:
+    print("docopt library missing..\nPlease install by executing the following command:")
+    print("pip3 install docopt")
 
 VERSION = "0.1.0"
 HOME = ""

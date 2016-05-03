@@ -29,6 +29,7 @@ except ImportError:
     print("docopt library missing..\nPlease install by executing the following command:")
     print("pip3 install docopt")
 
+
 VERSION = "0.1.0"
 HOME = ""
 UPLOAD_COMMAND = "curl --upload-file "
@@ -44,32 +45,16 @@ def purge_deleted_files_from_Db():
     global HOME
     global FILE_LIST
 
-    #print(LOCAL_DB_FULL)
-    if os.path.isfile(LOCAL_DB_FULL):
-        with open(LOCAL_DB_FULL, 'r') as f:
-            text = f.read()
-            if text != "":
-                FILE_LIST = json.loads(text)
-                today = datetime.date.today()
-                expire_date = today.day - NO_DAYS_TO_KEEP
-                temp_file_list = deepcopy(FILE_LIST)
-                for item, fn in temp_file_list.items():
-                    f_day = int(fn[1][-2:])
-                    if f_day <= expire_date:
-                        print(" {}\t{}\t{}\t{} to be deleted\n".format(
-                            item, fn[0], fn[1], fn[2]))
-                        del(FILE_LIST[item])
-                        write_to_file_db(FILE_LIST, LOCAL_DB_FULL)
-            else:
-                print("======================")
-                print("Files DB is Empty, no files in Transfer.sh")
-                print("======================")
+    #print(FILE_LIST)
 
-    else:
-        if list:
-            print("======================")
-            print("DB File {} not found".format(LOCAL_DB_FULL))
-            print("======================")
+    #print(LOCAL_DB_FULL)
+    temp_file_list = deepcopy(FILE_LIST)
+    for item, fn in temp_file_list.items():
+        if fn[2] == 'Expired':
+            print(" {}\t{}\t{} -> has been deleted\n".format(
+                    item, fn[0], fn[1]))
+            del(FILE_LIST[item])
+    write_to_file_db(FILE_LIST, LOCAL_DB_FULL)
 
 
 def read_from_files_db(list=False):
@@ -92,10 +77,14 @@ def read_from_files_db(list=False):
                 FILE_LIST = json.loads(text)
                 if list:
                     temp_file_list = deepcopy(FILE_LIST)
-                    print(" ID\tURL\t\t\t\tDate\tStatus")
-                    print("===================================================")
+                    print(" ID\tURL\t\t\t\t\t\t\tDate\tStatus")
+                    print("~"*90)
                     for item, fn in temp_file_list.items():
                         update_file_status(FILE_LIST, item)
+
+                    write_to_file_db(FILE_LIST, LOCAL_DB_FULL)
+
+                    for item, fn in FILE_LIST.items():
                         print(" {}\t{}\t{}\t{}\n".format(
                             item, fn[0], fn[1], fn[2]))
 
@@ -123,8 +112,8 @@ def read_from_files_db(list=False):
 def write_to_file_db(myDb, f_name):
     today = datetime.date.today()
     myDb = json.dumps(myDb, indent=1)
-    print("Writing to {}".format(f_name))
-    print(myDb)
+    #print("Writing to {}".format(f_name))
+    #print(myDb)
     with open(f_name, 'w') as f:
         f.write(myDb)
 
@@ -173,12 +162,17 @@ def upload_file(f_name):
 def update_file_status(myDb, item):
     #print("\nupdate DB file status")
     today = datetime.date.today()
-    expire_date = today.day - NO_DAYS_TO_KEEP
-    f_day = int(myDb[item][1][-2:])
-    if f_day <= expire_date:
+    delta = datetime.timedelta(days=NO_DAYS_TO_KEEP)
+    expire_date = today - delta
+    y, m, d = myDb[item][1].split('-')
+    f_day = datetime.date(int(y), int(m), int(d))
+    #print("{} < {} ?".format(f_day, expire_date))
+    if f_day < expire_date:
         #print(" Item {}\t Status Changed to Expired\n".format(item))
-        myDb[item][2] = "Exprired"
-        # print(myDb)
+        myDb[item][2] = "Expired"
+        #print(myDb)
+
+
 
 def download_file():
     read_from_files_db(list=True)
@@ -234,3 +228,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
